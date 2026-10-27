@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>大盘多空季报</title>
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+  <header class="top">
+    <div>
+      <p class="eyebrow">Market Desk</p>
+      <h1>大盘多空季报</h1>
+      <p class="lede">用均线、动量和波动看当前季度，再用利率、美元和半导体周期修正方向。未来两季只给情景，不给点位。</p>
+    </div>
+    <div class="top-side">
+      <p id="stamp" class="stamp">正在读取行情</p>
+      <button id="refresh" type="button">更新行情</button>
+    </div>
+  </header>
+
+  <section id="macro" class="macro" aria-label="宏观标尺"></section>
+  <div id="switcher" class="switcher" role="tablist" aria-label="季度"></div>
+  <p id="banner" class="banner" hidden></p>
+  <div id="counts" class="counts"></div>
+
+  <div class="layout">
+    <main id="board" class="board"></main>
+    <aside id="detail" class="detail" aria-live="polite"></aside>
+  </div>
+
+  <section class="panel">
+    <div class="panel-head">
+      <h2>本季日历</h2>
+      <p>临近三周的事件会降低置信度。更远的重要议息只轻微降低。决议结果出来之前，不把会议本身写成涨或跌。</p>
+    </div>
+    <div id="calendar"></div>
+  </section>
+
+  <section class="panel">
+    <div class="panel-head">
+      <h2>判断是怎么来的</h2>
+    </div>
+    <ol id="method" class="method"></ol>
+    <div id="sources" class="sources"></div>
+  </section>
+
+  <footer>
+    <p>指数口径：沪深300（000300）、科创综指（000680）、创业板指（399006）、标普500、纳斯达克100、道琼斯工业指数、费城半导体、韩国KOSPI、日经225。</p>
+    <p>这是规则化的趋势情景，不是投资建议。以后要加指数，改 <span class="code">config.mjs</span>，再双击「刷新行情.bat」。</p>
+  </footer>
+  <script src="./app.js"></script>
+</body>
+</html>

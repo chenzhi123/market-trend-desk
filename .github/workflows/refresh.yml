@@ -1,0 +1,31 @@
+name: refresh
+
+on:
+  schedule:
+    # 美东收盘之后。夏令时约 17:30，冬令时约 16:30。
+    - cron: "30 21 * * 1-5"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - run: node update.mjs
+      - name: commit snapshot
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/snapshot.json
+          if git diff --staged --quiet; then
+            echo "行情没有变化"
+          else
+            git commit -m "更新收盘行情"
+            git push
+          fi
