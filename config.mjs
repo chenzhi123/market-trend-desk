@@ -60,6 +60,7 @@ export const INDICES = [
     code: "000300",
     secid: "1.000300",
     yahoo: "000300.SS",
+    tencent: "sh000300",
     group: "A股",
     session: CN,
     // semi：相对费城半导体趋势的联动强度。rates / dollar：该因子满档加减分。
@@ -72,6 +73,7 @@ export const INDICES = [
     code: "000680",
     secid: "1.000680",
     yahoo: "000680.SS",
+    tencent: "sh000680",
     group: "A股",
     session: CN,
     sensitivity: { semi: 0.75, rates: 8, dollar: 3 },
@@ -83,6 +85,7 @@ export const INDICES = [
     code: "399006",
     secid: "0.399006",
     yahoo: "399006.SZ",
+    tencent: "sz399006",
     group: "A股",
     session: CN,
     sensitivity: { semi: 0.5, rates: 6, dollar: 3 },

@@ -211,7 +211,8 @@ async function fetchSeries(secid) {
   url.searchParams.set("fields1", "f1,f2,f3,f4,f5,f6");
   url.searchParams.set("fields2", "f51,f53");
   let lastError;
-  for (let attempt = 0; attempt < 2; attempt += 1) {
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    if (attempt > 0) await new Promise((resolve) => setTimeout(resolve, 400 * attempt));
     try {
       const response = await fetch(url, {
         headers: {
@@ -269,6 +270,20 @@ async function fetchYahoo(symbol, timeZone) {
     for (const bar of cleaned) bar.close /= 10;
   }
   return { name: result.meta?.longName || symbol, bars: cleaned, source: "雅虎财经" };
+}
+
+async function fetchTencent(symbol) {
+  const url = `https://web.ifzq.gtimg.cn/appstock/app/fqkline/get?param=${symbol},day,,,1200,qfq`;
+  const response = await fetch(url, { signal: AbortSignal.timeout(20000) });
+  if (!response.ok) throw new Error(`HTTP ${response.status}`);
+  const payload = await response.json();
+  const data = payload.data?.[symbol];
+  const rows = data?.qfqday || data?.day || [];
+  const bars = rows
+    .map((row) => ({ date: row[0], close: Number(row[2]) }))
+    .filter((bar) => /^\d{4}-\d{2}-\d{2}$/.test(bar.date) && Number.isFinite(bar.close) && bar.close > 0);
+  if (bars.length < 80) throw new Error("腾讯样本过短");
+  return { name: symbol, bars: dedupeBars(bars), source: "腾讯财经" };
 }
 
 function trimBars(bars, cutoff) {
@@ -544,9 +559,17 @@ export async function buildSnapshot(now = new Date()) {
       .filter((item) => item.yahoo)
       .map((item) => [item.secid, { symbol: item.yahoo, timeZone: item.timeZone || item.session?.timeZone || "America/New_York" }]),
   );
+  const tencentOf = new Map(INDICES.filter((item) => item.tencent).map((item) => [item.secid, item.tencent]));
   const loaded = new Map();
-  await Promise.all(
-    unique.map(async (item) => {
+  let cursor = 0;
+  async function worker() {
+    while (cursor < unique.length) {
+      const item = unique[cursor];
+      cursor += 1;
+      await loadOne(item);
+    }
+  }
+  async function loadOne(item) {
       const cutoff = item.session ? lastCompletedSession(now, item.session) : deskDate;
       const backup = yahooOf.get(item.secid);
       const useBackup = async () => {
@@ -575,14 +598,27 @@ export async function buildSnapshot(now = new Date()) {
               loaded.set(item.secid, { ...alt, cutoff });
               return;
             }
-          } catch {
-            // 备用源失败时保留原来的错误。
+          } catch (backupError) {
+            error = new Error(`${error.message}；备用源 ${backupError.message}`);
+          }
+        }
+        const tencent = tencentOf.get(item.secid);
+        if (tencent) {
+          try {
+            const alt = await fetchTencent(tencent);
+            const bars = trimBars(alt.bars, cutoff);
+            if (bars.length) {
+              loaded.set(item.secid, { name: alt.name, bars, cutoff, source: alt.source });
+              return;
+            }
+          } catch (tencentError) {
+            error = new Error(`${error.message}；腾讯 ${tencentError.message}`);
           }
         }
         loaded.set(item.secid, { name: "", bars: [], error: error.message, cutoff: null, source: "" });
       }
-    }),
-  );
+  }
+  await Promise.all([worker(), worker(), worker()]);
 
   const soxBars = loaded.get("251.SOX")?.bars || [];
   const soxCloses = soxBars.map((bar) => bar.close);
