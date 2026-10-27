@@ -245,7 +245,7 @@ function dedupeBars(bars) {
   return [...map.values()].sort((a, b) => a.date.localeCompare(b.date));
 }
 
-async function fetchYahoo(symbol) {
+async function fetchYahoo(symbol, timeZone) {
   const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?range=5y&interval=1d`;
   const response = await fetch(url, {
     headers: { "User-Agent": "Mozilla/5.0" },
@@ -260,10 +260,14 @@ async function fetchYahoo(symbol) {
   for (let i = 0; i < timestamps.length; i += 1) {
     const close = closes[i];
     if (!Number.isFinite(close) || close <= 0) continue;
-    bars.push({ date: zonedParts(new Date(timestamps[i] * 1000), "America/New_York").iso, close });
+    bars.push({ date: zonedParts(new Date(timestamps[i] * 1000), timeZone).iso, close });
   }
   const cleaned = dedupeBars(bars);
   if (cleaned.length < 80) throw new Error("雅虎样本过短");
+  // 个别收益率序列历史上用 10 倍报价。最近值若高于 20，按百分数还原。
+  if (symbol === "^TNX" && cleaned.at(-1).close > 20) {
+    for (const bar of cleaned) bar.close /= 10;
+  }
   return { name: result.meta?.longName || symbol, bars: cleaned, source: "雅虎财经" };
 }
 
@@ -535,33 +539,40 @@ export async function buildSnapshot(now = new Date()) {
     ...MACRO_SERIES.map((item) => ({ secid: item.secid, session: item.session })),
   ];
   const unique = [...new Map(targets.map((item) => [item.secid, item])).values()];
-  const yahooOf = new Map(INDICES.filter((item) => item.yahoo).map((item) => [item.secid, item.yahoo]));
+  const yahooOf = new Map(
+    [...INDICES, ...MACRO_SERIES]
+      .filter((item) => item.yahoo)
+      .map((item) => [item.secid, { symbol: item.yahoo, timeZone: item.timeZone || item.session?.timeZone || "America/New_York" }]),
+  );
   const loaded = new Map();
   await Promise.all(
     unique.map(async (item) => {
       const cutoff = item.session ? lastCompletedSession(now, item.session) : deskDate;
+      const backup = yahooOf.get(item.secid);
+      const useBackup = async () => {
+        const alt = await fetchYahoo(backup.symbol, backup.timeZone);
+        return { name: alt.name, bars: trimBars(alt.bars, cutoff), source: alt.source };
+      };
       try {
         const series = await fetchSeries(item.secid);
         let bars = trimBars(series.bars, cutoff);
         let name = series.name;
         let source = "东方财富";
-        if (bars.length < 250 && yahooOf.has(item.secid)) {
-          const alt = await fetchYahoo(yahooOf.get(item.secid));
-          const altBars = trimBars(alt.bars, cutoff);
-          if (altBars.length > bars.length) {
-            bars = altBars;
+        if (backup && bars.length < 250) {
+          const alt = await useBackup();
+          if (alt.bars.length > bars.length) {
+            bars = alt.bars;
             name = alt.name || name;
             source = alt.source;
           }
         }
         loaded.set(item.secid, { name, bars, cutoff, source });
       } catch (error) {
-        if (yahooOf.has(item.secid)) {
+        if (backup) {
           try {
-            const alt = await fetchYahoo(yahooOf.get(item.secid));
-            const bars = trimBars(alt.bars, cutoff);
-            if (bars.length) {
-              loaded.set(item.secid, { name: alt.name, bars, cutoff, source: alt.source });
+            const alt = await useBackup();
+            if (alt.bars.length) {
+              loaded.set(item.secid, { ...alt, cutoff });
               return;
             }
           } catch {

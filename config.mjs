@@ -59,6 +59,7 @@ export const INDICES = [
     name: "沪深300",
     code: "000300",
     secid: "1.000300",
+    yahoo: "000300.SS",
     group: "A股",
     session: CN,
     // semi：相对费城半导体趋势的联动强度。rates / dollar：该因子满档加减分。
@@ -70,6 +71,7 @@ export const INDICES = [
     name: "科创综指",
     code: "000680",
     secid: "1.000680",
+    yahoo: "000680.SS",
     group: "A股",
     session: CN,
     sensitivity: { semi: 0.75, rates: 8, dollar: 3 },
@@ -80,6 +82,7 @@ export const INDICES = [
     name: "创业板指",
     code: "399006",
     secid: "0.399006",
+    yahoo: "399006.SZ",
     group: "A股",
     session: CN,
     sensitivity: { semi: 0.5, rates: 6, dollar: 3 },
@@ -90,6 +93,7 @@ export const INDICES = [
     name: "标普500",
     code: "SPX",
     secid: "100.SPX",
+    yahoo: "^GSPC",
     group: "美股",
     session: US,
     sensitivity: { semi: 0.3, rates: 5, dollar: 3 },
@@ -100,6 +104,7 @@ export const INDICES = [
     name: "纳斯达克100",
     code: "NDX",
     secid: "100.NDX",
+    yahoo: "^NDX",
     group: "美股",
     session: US,
     sensitivity: { semi: 0.6, rates: 10, dollar: 2 },
@@ -110,6 +115,7 @@ export const INDICES = [
     name: "道琼斯工业指数",
     code: "DJIA",
     secid: "100.DJIA",
+    yahoo: "^DJI",
     group: "美股",
     session: US,
     sensitivity: { semi: 0.12, rates: 3, dollar: 4 },
@@ -131,6 +137,7 @@ export const INDICES = [
     name: "韩国KOSPI",
     code: "KS11",
     secid: "100.KS11",
+    yahoo: "^KS11",
     group: "亚太",
     session: KR,
     sensitivity: { semi: 0.7, rates: 4, dollar: 6 },
@@ -141,6 +148,7 @@ export const INDICES = [
     name: "日经225",
     code: "N225",
     secid: "100.N225",
+    yahoo: "^N225",
     group: "亚太",
     session: JP,
     sensitivity: { semi: 0.45, rates: 3, dollar: 4 },
@@ -150,8 +158,8 @@ export const INDICES = [
 
 // 这些序列只参与宏观修正，不单独出卡片。美元和美债取不超过「今天」的最新日线。
 export const MACRO_SERIES = [
-  { id: "us10y", name: "美债10年收益率", secid: "171.US10Y", session: null },
-  { id: "dxy", name: "美元指数", secid: "100.UDI", session: null },
+  { id: "us10y", name: "美债10年收益率", secid: "171.US10Y", yahoo: "^TNX", timeZone: "America/New_York", session: null },
+  { id: "dxy", name: "美元指数", secid: "100.UDI", yahoo: "DX-Y.NYB", timeZone: "America/New_York", session: null },
 ];
 
 export const SCOPE = {
